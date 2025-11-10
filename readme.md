@@ -1,11 +1,11 @@
 # 📖 Databricks AutoML OBSRVE 🍳
 
-- ** Objects **
-- ** Building **
-- ** Stacking **
-- ** Routing **
-- ** Voting **
-- ** Ensembles **
+- **Objects**
+- **Building**
+- **Stacking**
+- **Routing**
+- **Voting**
+- **Ensembles**
 
 Ready-to-use code snippets for building data and AI applications using [Databricks Apps](https://docs.databricks.com/en/dev-tools/databricks-apps/index.html).
 
