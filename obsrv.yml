@@ -1,0 +1,90 @@
+obsrv:
+  context:
+    name:
+    compute:
+        existing_cluster_id: 1218-183630-uhht2k1u
+        serverless: [GPU, no-GPU]
+    timeout: 10 minutes
+    metric:
+      classification: [accuracy precision recall f1 auc]
+      regression: [rmse mae r2]
+    sample:
+      size:
+      method: [random stratified time_series]
+    fold_type: [kfold stratified time_series]
+    source:
+      catalog:
+      schema:
+      table:
+      target:
+      features:
+        include:
+          - feature_included:
+            transform:
+              - pre_scale:
+                scale:
+                post_scale:
+        exclude:
+          - feature_excluded:
+  job:  
+    - task: route_cluster
+      route:
+        cluster: 
+          #kmeans:
+          #bisect
+          #mixture
+          #hierarch
+          #agglom
+    - task: route_feature
+      route:
+        feature:
+    - task: route_external
+      route:
+        partition:
+          #random
+          sequence:
+      depends_on:
+        - task: route_cluster
+    - task: stack_top_any
+      stack:
+        # Split training data into K folds
+        # Train on K−1 folds
+        # Predict on held-out fold
+        # Concatenate OOF predictions
+        # Train meta-learner on OOF predictions
+        # Retrain base models on full data
+        # Use them to predict test data → feed into meta-learner
+        top_n:
+    - task: stack_top_alg
+      stack:
+        top_alg:
+        levels: 1
+    - task: stack_top_n_alg
+      stack:
+        top_n_alg:
+        levels: 2
+    - task: stack_blend
+        # Hold out a single validation set
+        # Train base models on train
+        # Train meta-model on validation predictions
+      stack:
+        blend:
+        levels: 2
+        holdout: .20
+    - task: stack_classwise
+      stack:
+        classwise:
+        levels: 1
+    - task: boost
+      boost:
+        method: [gbm xgboost lightgbm catboost automl tf dl pytorch tabnet]
+    - task: vote_top_alg
+      vote:
+        top_alg:
+    - task: vote_mix
+      vote:
+        mix:
+    - task: vote_weight
+      vote:
+        weight_col:
+
