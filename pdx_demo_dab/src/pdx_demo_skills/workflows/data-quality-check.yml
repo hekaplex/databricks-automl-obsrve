@@ -1,0 +1,67 @@
+# workflows/daily-quality-check.yml
+# Databricks Workflow for automated data quality monitoring
+
+name: Daily Data Quality Checks
+
+triggers:
+  - schedule:
+      quartz_cron_expression: "0 0 8 * * ?"  # Run daily at 8 AM UTC
+      timezone_id: "UTC"
+      pause_status: "UNPAUSED"
+
+tasks:
+  - task_key: completeness_check
+    description: "Check for null values in critical columns"
+    sql_task:
+      warehouse_id: "{{ warehouse_id }}"
+      query:
+        query: |
+          SELECT 
+            'completeness_check' as check_type,
+            CURRENT_TIMESTAMP() as check_time,
+            column_name,
+            total_rows,
+            null_count,
+            null_percentage,
+            status
+          FROM (
+            SELECT 
+              'user_id' as column_name,
+              COUNT(*) as total_rows,
+              SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) as null_count,
+              ROUND(100.0 * SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as null_percentage,
+              CASE WHEN SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) = 0 THEN 'PASS' ELSE 'FAIL' END as status
+            FROM catalog.schema.users
+          )
+          WHERE status = 'FAIL';
+    
+  - task_key: duplicate_check
+    description: "Detect duplicate records"
+    depends_on:
+      - task_key: completeness_check
+    sql_task:
+      warehouse_id: "{{ warehouse_id }}"
+      query:
+        query: |
+          WITH duplicates AS (
+            SELECT 
+              user_id,
+              COUNT(*) as duplicate_count
+            FROM catalog.schema.users
+            GROUP BY user_id
+            HAVING COUNT(*) > 1
+          )
+          SELECT 
+            'duplicate_check' as check_type,
+            CURRENT_TIMESTAMP() as check_time,
+            COUNT(*) as duplicate_groups,
+            SUM(duplicate_count) as total_duplicates,
+            CASE WHEN COUNT(*) = 0 THEN 'PASS' ELSE 'FAIL' END as status
+          FROM duplicates;
+
+email_notifications:
+  on_failure:
+    - drew.minkin@databricks.com
+
+max_concurrent_runs: 1
+timeout_seconds: 3600

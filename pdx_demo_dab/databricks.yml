@@ -19,6 +19,8 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
+  skill_folder:
+    description: The soource folder for the skill
 
 targets:
   dev:
@@ -33,6 +35,7 @@ targets:
     variables:
       catalog: users
       schema: ${workspace.current_user.short_name}
+      skill_folder: 
   prod:
     mode: production
     workspace:

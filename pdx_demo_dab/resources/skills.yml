@@ -1,0 +1,5 @@
+resources:
+     workspace_files:
+       my_folder:
+         source: ./src/${var.skill_folder}
+         workspace_path: /Workspace/Users/your.email@databricks.com/target_folder
